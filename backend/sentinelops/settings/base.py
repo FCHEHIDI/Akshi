@@ -148,6 +148,16 @@ CELERY_TASK_ROUTES = {
     "plugins.*": {"queue": "plugins"},
 }
 
+CELERY_BEAT_SCHEDULE = {
+    # Scan all tenants every 30 seconds and dispatch due checks.
+    # Each individual check is then executed as a separate run_check task.
+    "dispatch-due-checks": {
+        "task": "monitoring.dispatch_due_checks",
+        "schedule": 30.0,  # seconds
+        "options": {"queue": "checks"},
+    },
+}
+
 # ---------------------------------------------------------------------------
 # Auth & JWT
 # ---------------------------------------------------------------------------
