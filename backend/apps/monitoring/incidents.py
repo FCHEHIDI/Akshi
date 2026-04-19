@@ -180,6 +180,9 @@ def _handle_failure(
                 active_incident.id,
                 severity,
             )
+            # Notify escalation asynchronously.
+            from apps.monitoring.notifications import notify  # noqa: PLC0415
+            notify(active_incident, "escalated")
         return
 
     # No active incident — open a new one.
@@ -196,6 +199,9 @@ def _handle_failure(
         consecutive,
         severity,
     )
+    # Notify opening asynchronously.
+    from apps.monitoring.notifications import notify  # noqa: PLC0415
+    notify(incident, "opened")
 
 
 def _handle_recovery(
@@ -232,3 +238,6 @@ def _handle_recovery(
         check.name,
         active_incident.id,
     )
+    # Notify resolution asynchronously.
+    from apps.monitoring.notifications import notify  # noqa: PLC0415
+    notify(active_incident, "resolved")

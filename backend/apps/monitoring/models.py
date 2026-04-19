@@ -1,5 +1,5 @@
 """
-Monitoring models — Service, Check, CheckResult, Incident.
+Monitoring models — Service, Check, CheckResult, Incident, NotificationChannel.
 
 All models inherit from TenantScopedModel and live in the tenant's PostgreSQL schema.
 """
@@ -168,3 +168,55 @@ class Incident(TenantScopedModel):
 
     def __str__(self) -> str:
         return f"Incident [{self.state}] on {self.service.name}"
+
+
+# ---------------------------------------------------------------------------
+# Notification channels
+# ---------------------------------------------------------------------------
+
+
+class ChannelType(models.TextChoices):
+    SLACK = "slack", "Slack Webhook"
+    EMAIL = "email", "Email"
+    WEBHOOK = "webhook", "Generic Webhook"
+
+
+class NotificationChannel(TenantScopedModel):
+    """
+    A delivery channel for incident notifications (Slack, email, or HTTP webhook).
+
+    Channels are tenant-scoped. Every active channel is evaluated each time an
+    incident is opened, escalated, or resolved.
+
+    Attributes:
+        name: Human-readable label (e.g. ``"#ops-alerts Slack"``).
+        channel_type: ``slack`` | ``email`` | ``webhook``.
+        config: Channel-specific JSON config.
+
+            * **slack** / **webhook**: ``{"url": "https://..."}``.
+              Webhook may also include ``{"headers": {"Authorization": "Bearer ..."}}``.'
+            * **email**: ``{"to": ["alice@example.com", "bob@example.com"]}``.
+
+        is_active: Master on/off switch.
+        notify_on_open: Send when a new incident is opened.
+        notify_on_resolve: Send when an incident is resolved.
+        min_severity: Only notify if incident severity >= this value.
+    """
+
+    name = models.CharField(max_length=255)
+    channel_type = models.CharField(max_length=20, choices=ChannelType.choices)
+    config = models.JSONField()
+    is_active = models.BooleanField(default=True, db_index=True)
+    notify_on_open = models.BooleanField(default=True)
+    notify_on_resolve = models.BooleanField(default=True)
+    min_severity = models.CharField(
+        max_length=20,
+        choices=Severity.choices,
+        default=Severity.LOW,
+    )
+
+    class Meta:
+        app_label = "monitoring"
+
+    def __str__(self) -> str:
+        return f"{self.name} [{self.channel_type}]"

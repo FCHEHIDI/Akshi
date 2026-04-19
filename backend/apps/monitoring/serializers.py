@@ -2,10 +2,11 @@
 DRF serializers for the monitoring app.
 
 Hierarchy:
-    ServiceSerializer           — CRUD on Service
-    CheckSerializer             — CRUD on Check (nested under Service)
-    CheckResultSerializer       — read-only, nested under Check
-    IncidentSerializer          — read + acknowledge/resolve actions
+    ServiceSerializer              — CRUD on Service
+    CheckSerializer                — CRUD on Check (nested under Service)
+    CheckResultSerializer          — read-only, nested under Check
+    IncidentSerializer             — read + acknowledge/resolve actions
+    NotificationChannelSerializer  — CRUD on NotificationChannel
 """
 
 from __future__ import annotations
@@ -233,3 +234,69 @@ class AcknowledgeIncidentSerializer(serializers.Serializer):
     """
 
     ack_note = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class NotificationChannelSerializer(serializers.ModelSerializer):
+    """
+    CRUD serializer for ``NotificationChannel``.
+
+    Validates that ``config`` matches the expected shape for each
+    ``channel_type``.
+
+    * **slack** / **webhook**: ``config`` must have a non-empty ``url`` string.
+    * **email**: ``config`` must have a non-empty ``to`` list of strings.
+    """
+
+    class Meta:
+        from apps.monitoring.models import NotificationChannel  # noqa: PLC0415
+
+        model = NotificationChannel
+        fields = [
+            "id",
+            "name",
+            "channel_type",
+            "config",
+            "is_active",
+            "notify_on_open",
+            "notify_on_resolve",
+            "min_severity",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate(self, attrs: dict) -> dict:
+        """
+        Cross-field validation: ensure ``config`` matches ``channel_type``.
+
+        Args:
+            attrs: Validated field data before object creation.
+
+        Returns:
+            The validated attrs unchanged.
+
+        Raises:
+            serializers.ValidationError: If config structure is invalid.
+        """
+        channel_type = attrs.get("channel_type") or (
+            self.instance.channel_type if self.instance else None
+        )
+        config = attrs.get("config") or (self.instance.config if self.instance else {})
+
+        if not isinstance(config, dict):
+            raise serializers.ValidationError({"config": "Must be a JSON object."})
+
+        if channel_type in ("slack", "webhook"):
+            url = config.get("url", "")
+            if not url or not isinstance(url, str):
+                raise serializers.ValidationError(
+                    {"config": f"Channel type '{channel_type}' requires config.url (non-empty string)."}
+                )
+        elif channel_type == "email":
+            to = config.get("to", [])
+            if not to or not isinstance(to, list) or not all(isinstance(e, str) for e in to):
+                raise serializers.ValidationError(
+                    {"config": "Channel type 'email' requires config.to (non-empty list of strings)."}
+                )
+
+        return attrs

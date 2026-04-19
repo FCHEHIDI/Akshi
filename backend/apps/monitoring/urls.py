@@ -1,4 +1,4 @@
-"""HTTP URL patterns for the monitoring app — Phase 1, Bloc 4."""
+"""HTTP URL patterns for the monitoring app — Phase 1, Bloc 4 + Bloc 6."""
 
 from django.urls import path
 
@@ -8,6 +8,8 @@ from apps.monitoring.views import (
     CheckListCreateView,
     CheckResultListView,
     IncidentListView,
+    NotificationChannelDetailView,
+    NotificationChannelListCreateView,
     ResolveIncidentView,
     ServiceDetailView,
     ServiceListCreateView,
@@ -26,4 +28,7 @@ urlpatterns = [
     path("incidents/", IncidentListView.as_view(), name="incident-list"),
     path("incidents/<uuid:pk>/acknowledge/", AcknowledgeIncidentView.as_view(), name="incident-acknowledge"),
     path("incidents/<uuid:pk>/resolve/", ResolveIncidentView.as_view(), name="incident-resolve"),
+    # Notification channels
+    path("notification-channels/", NotificationChannelListCreateView.as_view(), name="notificationchannel-list"),
+    path("notification-channels/<uuid:pk>/", NotificationChannelDetailView.as_view(), name="notificationchannel-detail"),
 ]

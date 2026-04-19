@@ -1,15 +1,17 @@
 """
-DRF views for the monitoring app — Phase 1, Bloc 4.
+DRF views for the monitoring app — Phase 1, Bloc 4 + Bloc 6.
 
 URL structure:
-    /api/v1/services/                          ServiceListCreateView
-    /api/v1/services/<pk>/                     ServiceDetailView
-    /api/v1/services/<service_pk>/checks/      CheckListCreateView
-    /api/v1/services/<service_pk>/checks/<pk>/ CheckDetailView
-    /api/v1/checks/<check_pk>/results/         CheckResultListView
-    /api/v1/incidents/                         IncidentListView
-    /api/v1/incidents/<pk>/acknowledge/        AcknowledgeIncidentView
-    /api/v1/incidents/<pk>/resolve/            ResolveIncidentView
+    /api/v1/services/                            ServiceListCreateView
+    /api/v1/services/<pk>/                       ServiceDetailView
+    /api/v1/services/<service_pk>/checks/        CheckListCreateView
+    /api/v1/services/<service_pk>/checks/<pk>/   CheckDetailView
+    /api/v1/checks/<check_pk>/results/           CheckResultListView
+    /api/v1/incidents/                           IncidentListView
+    /api/v1/incidents/<pk>/acknowledge/          AcknowledgeIncidentView
+    /api/v1/incidents/<pk>/resolve/              ResolveIncidentView
+    /api/v1/notification-channels/              NotificationChannelListCreateView
+    /api/v1/notification-channels/<pk>/         NotificationChannelDetailView
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from apps.monitoring.models import (
     CheckResult,
     Incident,
     IncidentState,
+    NotificationChannel,
     Service,
 )
 from apps.monitoring.serializers import (
@@ -36,6 +39,7 @@ from apps.monitoring.serializers import (
     CheckResultSerializer,
     CheckSerializer,
     IncidentSerializer,
+    NotificationChannelSerializer,
     ServiceSerializer,
 )
 
@@ -334,3 +338,70 @@ class ResolveIncidentView(APIView):
         )
 
         return Response(IncidentSerializer(incident).data, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Notification channels
+# ---------------------------------------------------------------------------
+
+
+class NotificationChannelListCreateView(generics.ListCreateAPIView):
+    """
+    List all notification channels or create a new one.
+
+    GET  /api/v1/notification-channels/  — list all channels
+    POST /api/v1/notification-channels/  — create a channel
+
+    Query params:
+        channel_type: Filter by type (``slack`` | ``email`` | ``webhook``).
+        is_active:    Filter by active status (``true`` | ``false``).
+
+    Request body (POST) example — Slack channel::
+
+        {
+            "name": "#ops-alerts",
+            "channel_type": "slack",
+            "config": {"url": "https://hooks.slack.com/services/..."},
+            "min_severity": "medium"
+        }
+
+    Returns:
+        200 list of channels, or 201 with the created channel.
+    """
+
+    serializer_class = NotificationChannelSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Return channels optionally filtered by type and active status.
+
+        Returns:
+            Filtered QuerySet of ``NotificationChannel``.
+        """
+        qs = NotificationChannel.objects.all()
+        channel_type = self.request.query_params.get("channel_type")
+        is_active = self.request.query_params.get("is_active")
+        if channel_type:
+            qs = qs.filter(channel_type=channel_type)
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active.lower() == "true")
+        return qs
+
+
+class NotificationChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update, or delete a single notification channel.
+
+    GET    /api/v1/notification-channels/<pk>/ — retrieve
+    PUT    /api/v1/notification-channels/<pk>/ — full update
+    PATCH  /api/v1/notification-channels/<pk>/ — partial update
+    DELETE /api/v1/notification-channels/<pk>/ — delete
+
+    Returns:
+        200 with channel data, or 204 on deletion.
+    """
+
+    serializer_class = NotificationChannelSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = NotificationChannel.objects.all()
