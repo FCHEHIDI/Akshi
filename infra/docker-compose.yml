@@ -1,0 +1,101 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: sentinelops
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinelops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  backend:
+    build: ./backend
+    command: daphne -b 0.0.0.0 -p 8000 sentinelops.asgi:application
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: sentinelops.settings.development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+
+  worker:
+    build: ./backend
+    command: celery -A sentinelops worker -Q checks,workflows,exports,plugins -c 4 -l info
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: sentinelops.settings.development
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+
+  beat:
+    build: ./backend
+    command: celery -A sentinelops beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: sentinelops.settings.development
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+
+  flower:
+    build: ./backend
+    command: celery -A sentinelops flower --port=5555
+    depends_on:
+      - redis
+    ports:
+      - "5555:5555"
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+
+volumes:
+  pgdata:
+  miniodata:
