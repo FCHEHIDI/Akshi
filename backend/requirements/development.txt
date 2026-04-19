@@ -1,0 +1,5 @@
+-r base.txt
+
+# Dev tools
+django-cors-headers==4.*
+ipython==8.*
