@@ -1,0 +1,41 @@
+services:
+
+  fastapi-app:
+    build: ./fastapi-app
+    container_name: demo-fastapi-app
+    ports:
+      - "8001:8001"
+    environment:
+      SLOW_DELAY_MS: "3000"
+    networks:
+      - sentinelops_net
+    restart: unless-stopped
+
+  flaky-service:
+    build: ./flaky-service
+    container_name: demo-flaky-service
+    ports:
+      - "8002:8002"
+    environment:
+      FAILURE_RATE: "0.5"   # 50% random failures
+    networks:
+      - sentinelops_net
+    restart: unless-stopped
+
+  grpc-echo:
+    build: ./grpc-echo
+    container_name: demo-grpc-echo
+    ports:
+      - "50051:50051"
+    environment:
+      TCP_PORT: "50051"
+    networks:
+      - sentinelops_net
+    restart: unless-stopped
+
+# Join the same network as the Akshi stack so SentinelOps can reach
+# these services using their container names (demo-fastapi-app, etc.)
+networks:
+  sentinelops_net:
+    external: true
+    name: akshi_sentinelops_net

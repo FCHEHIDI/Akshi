@@ -23,6 +23,7 @@ staticfiles/
 .env
 .env.local
 .env.*.local
+.env.docker
 
 # Pytest / coverage
 .pytest_cache/

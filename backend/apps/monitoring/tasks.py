@@ -25,7 +25,7 @@ from datetime import timedelta
 from django.db.models import DurationField, ExpressionWrapper, F, Q
 from django.db.models.functions import Now
 from django.utils import timezone
-from django_tenants.utils import schema_context
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from sentinelops.celery import app
 
@@ -52,9 +52,9 @@ def dispatch_due_checks() -> None:
     from apps.accounts.models import Organization  # noqa: PLC0415
 
     now = timezone.now()
-    active_tenants = Organization.objects.filter(is_active=True).only(
-        "schema_name", "slug"
-    )
+    active_tenants = Organization.objects.filter(is_active=True).exclude(
+        schema_name=get_public_schema_name()
+    ).only("schema_name", "slug")
 
     for tenant in active_tenants:
         with schema_context(tenant.schema_name):

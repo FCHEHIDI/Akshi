@@ -15,4 +15,9 @@ RUN pip install --no-cache-dir -r requirements/base.txt
 
 COPY . .
 
+# Rendre le script de démarrage exécutable
+RUN chmod +x docker-entrypoint.sh
+
 EXPOSE 8000
+
+ENTRYPOINT ["./docker-entrypoint.sh"]

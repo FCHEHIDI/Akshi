@@ -37,6 +37,10 @@ SHARED_APPS = [
     # Third-party shared
     "rest_framework",
     "drf_spectacular",
+    # Celery Beat/Results live in the public schema so a single Beat process
+    # manages the global schedule across all tenants.
+    "django_celery_beat",
+    "django_celery_results",
 ]
 
 TENANT_APPS = [
@@ -45,9 +49,6 @@ TENANT_APPS = [
     "apps.automations",
     "apps.compliance",
     "apps.plugins",
-    # Third-party tenant
-    "django_celery_beat",
-    "django_celery_results",
 ]
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
