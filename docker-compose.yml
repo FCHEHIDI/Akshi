@@ -1,0 +1,160 @@
+# =============================================================================
+# docker-compose.yml — SentinelOps stack complète
+#
+# Services :
+#   db      → PostgreSQL 17 (base de données)
+#   redis   → Redis 7      (broker Celery + cache Django)
+#   web     → Django/Daphne (serveur ASGI HTTP)
+#   worker  → Celery worker (exécute les checks)
+#   beat    → Celery Beat   (planificateur périodique toutes les 30s)
+#
+# Démarrage :
+#   docker compose --env-file .env.docker up --build
+#
+# Arrêt + suppression des volumes (reset complet) :
+#   docker compose down -v
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 17
+  # Rôle : seule source de vérité — tenants, checks, incidents, résultats.
+  # Le volume "pg_data" persiste les données entre les redémarrages.
+  # healthcheck : garantit que PG accepte les connexions avant que les autres
+  # services ne démarrent (depends_on condition: service_healthy).
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: .env.docker
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready : outil officiel PostgreSQL qui vérifie si le serveur
+      # est prêt à accepter des connexions.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sentinelops_net
+
+  # ---------------------------------------------------------------------------
+  # Redis 7
+  # Rôle : double usage —
+  #   DB 0 : cache Django (sessions, résultats de requêtes)
+  #   DB 1 : broker + backend Celery (file de tâches)
+  #   DB 2 : Django Channels (WebSocket layer)
+  #   DB 3 : tokens JWT révoqués (liste noire)
+  # Le volume "redis_data" active la persistance AOF (append-only file)
+  # pour ne pas perdre les tâches en queue au redémarrage.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - sentinelops_net
+
+  # ---------------------------------------------------------------------------
+  # Django web (Daphne ASGI)
+  # Rôle : serveur HTTP principal — répond aux requêtes API REST.
+  # Daphne est le serveur ASGI recommandé par Django Channels.
+  # Il gère HTTP/1.1, HTTP/2 et WebSocket sur le même port.
+  # Port 8000 du container exposé sur 8000 de la machine hôte.
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.docker
+    command: ["web"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy   # attend que PG soit vraiment prêt
+      redis:
+        condition: service_healthy   # attend que Redis soit vraiment prêt
+    volumes:
+      # Monte le code source en live-reload (dev uniquement).
+      # En prod : supprimer ce volume et utiliser l'image buildée.
+      - ./backend:/app
+    networks:
+      - sentinelops_net
+
+  # ---------------------------------------------------------------------------
+  # Celery worker
+  # Rôle : exécute les tâches en arrière-plan —
+  #   monitoring.run_check       → exécute un check HTTP/TCP/Ping
+  #   monitoring.send_notification → envoie Slack/email/webhook
+  # Il consomme la queue "checks" depuis Redis.
+  # Séparé du web pour ne pas bloquer les requêtes HTTP pendant les checks.
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.docker
+    command: ["worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - sentinelops_net
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat
+  # Rôle : planificateur périodique — toutes les 30 secondes il envoie
+  #   la tâche dispatch_due_checks dans la queue "checks".
+  # Un seul Beat doit tourner à la fois (sinon double dispatch).
+  # Le scheduler DatabaseScheduler stocke le planning en base PG,
+  # ce qui permet de le modifier via Django admin sans redémarrer Beat.
+  # ---------------------------------------------------------------------------
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.docker
+    command: ["beat"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - sentinelops_net
+
+# =============================================================================
+# Volumes nommés — persistance des données entre les redémarrages
+# =============================================================================
+volumes:
+  pg_data:
+    # Données PostgreSQL : schémas, tenants, incidents, résultats de checks.
+  redis_data:
+    # Données Redis (AOF) : tâches Celery en attente de traitement.
+
+# =============================================================================
+# Réseau interne — les services communiquent par leur nom de service
+# (ex: "db", "redis") sans exposer les ports PG/Redis sur l'hôte.
+# =============================================================================
+networks:
+  sentinelops_net:
+    driver: bridge
