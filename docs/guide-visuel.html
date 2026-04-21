@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>SentinelOps — Guide Visuel</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#1e1e2e;color:#cdd6f4;font-family:'Segoe UI',sans-serif;font-size:15px;}
+
+  /* ── TABS ── */
+  .tabs{display:flex;background:#181825;border-bottom:2px solid #313244;}
+  .tab{padding:14px 28px;cursor:pointer;color:#6c7086;font-size:.9rem;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
+  .tab:hover{color:#cdd6f4;}
+  .tab.active{color:#cba6f7;border-bottom-color:#cba6f7;font-weight:600;}
+
+  /* ── PANELS ── */
+  .panel{display:none;padding:36px 48px;max-width:1100px;margin:0 auto;}
+  .panel.active{display:block;}
+  h2{color:#cba6f7;margin-bottom:24px;font-size:1.2rem;}
+  h3{color:#89b4fa;margin:28px 0 12px;font-size:1rem;}
+  p,li{line-height:1.7;color:#bac2de;}
+
+  /* ── STEP FLOW ── */
+  .steps{display:flex;flex-direction:column;gap:0;}
+  .step{display:flex;gap:20px;align-items:flex-start;position:relative;}
+  .step:not(:last-child)::after{
+    content:'';position:absolute;left:22px;top:50px;width:2px;height:calc(100% - 10px);
+    background:linear-gradient(to bottom,#45475a,transparent);
+  }
+  .num{
+    min-width:46px;height:46px;border-radius:50%;
+    background:#313244;border:2px solid #45475a;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:1rem;color:#cba6f7;flex-shrink:0;
+  }
+  .step-body{background:#181825;border:1px solid #313244;border-radius:10px;padding:16px 20px;margin-bottom:16px;flex:1;}
+  .step-body .who{font-size:.75rem;color:#6c7086;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;}
+  .step-body .what{font-weight:600;color:#cdd6f4;margin-bottom:6px;}
+  .step-body .why{font-size:.85rem;color:#a6adc8;}
+  .step-body code{background:#313244;padding:2px 6px;border-radius:4px;font-size:.82rem;color:#89dceb;}
+  .arrow-label{align-self:center;font-size:.75rem;color:#f38ba8;background:#2d0e14;border:1px solid #5c1f2e;border-radius:20px;padding:3px 10px;white-space:nowrap;margin-bottom:16px;}
+
+  /* ── STATE MACHINE ── */
+  .states{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:32px;}
+  .state-card{
+    flex:1;min-width:200px;border-radius:12px;padding:18px 20px;
+    border-left:4px solid;
+  }
+  .state-card.open{background:#2d0e14;border-color:#f38ba8;}
+  .state-card.ack{background:#2d1e00;border-color:#fab387;}
+  .state-card.resolved{background:#0d2b12;border-color:#a6e3a1;}
+  .state-card .sname{font-weight:700;font-size:1rem;margin-bottom:8px;}
+  .state-card.open .sname{color:#f38ba8;}
+  .state-card.ack .sname{color:#fab387;}
+  .state-card.resolved .sname{color:#a6e3a1;}
+  .state-card ul{padding-left:16px;font-size:.85rem;color:#a6adc8;line-height:1.8;}
+
+  .transitions{display:flex;flex-direction:column;gap:10px;}
+  .tr{display:flex;align-items:center;gap:14px;background:#181825;border:1px solid #313244;border-radius:8px;padding:12px 16px;}
+  .tr .from{font-weight:600;font-size:.85rem;min-width:110px;}
+  .tr .cond{flex:1;font-size:.82rem;color:#a6adc8;}
+  .tr .to{font-weight:600;font-size:.85rem;}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:600;}
+  .b-open{background:#2d0e14;color:#f38ba8;border:1px solid #f38ba8;}
+  .b-ack{background:#2d1e00;color:#fab387;border:1px solid #fab387;}
+  .b-resolved{background:#0d2b12;color:#a6e3a1;border:1px solid #a6e3a1;}
+  .b-noop{background:#313244;color:#9399b2;border:1px solid #45475a;}
+
+  /* ── BLOCS ── */
+  .blocs{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px;}
+  .bloc{flex:1;min-width:220px;background:#181825;border:1px solid #313244;border-radius:12px;padding:20px;}
+  .bloc .btitle{font-weight:700;color:#cba6f7;margin-bottom:6px;font-size:1rem;}
+  .bloc .bfile{font-size:.78rem;color:#6c7086;font-family:monospace;margin-bottom:12px;}
+  .bloc .bjob{font-size:.85rem;color:#a6adc8;line-height:1.7;}
+  .bloc .bjob code{background:#313244;padding:1px 5px;border-radius:3px;font-size:.8rem;color:#89dceb;}
+  .connector{display:flex;align-items:center;color:#45475a;font-size:1.5rem;align-self:center;}
+
+  .sev-table{width:100%;border-collapse:collapse;margin-top:12px;}
+  .sev-table th{text-align:left;color:#6c7086;font-size:.78rem;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #313244;}
+  .sev-table td{padding:8px 12px;border-bottom:1px solid #1e1e2e;font-size:.85rem;}
+  .sev-table tr:hover td{background:#1e1e2e;}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" onclick="show(0)">① Flow complet (étape par étape)</div>
+  <div class="tab" onclick="show(1)">② State machine — Incidents</div>
+  <div class="tab" onclick="show(2)">③ Les 3 blocs et leur rôle</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 1 — FLOW COMPLET
+══════════════════════════════════════════ -->
+<div class="panel active" id="p0">
+  <h2>Le flow de bout en bout — ce qui se passe toutes les 30 secondes</h2>
+  <div class="steps">
+
+    <div class="step">
+      <div class="num">1</div>
+      <div class="step-body">
+        <div class="who">Celery Beat (planificateur)</div>
+        <div class="what">Déclenche <code>dispatch_due_checks()</code> toutes les 30 secondes</div>
+        <div class="why">C'est le "chef d'orchestre" — il réveille le système à intervalle régulier. Il ne fait rien lui-même, il délègue.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">2</div>
+      <div class="step-body">
+        <div class="who">dispatch_due_checks — tasks.py</div>
+        <div class="what">Récupère la liste de tous les tenants actifs (ex: <code>acme</code>, <code>globex</code>…)</div>
+        <div class="why">L'appli est multi-tenant : chaque client a son schéma PostgreSQL séparé. On boucle sur chacun.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">3</div>
+      <div class="step-body">
+        <div class="who">_dispatch_tenant_checks — tasks.py</div>
+        <div class="what">Pour chaque tenant : cherche les checks dont <code>next_run_at ≤ maintenant</code></div>
+        <div class="why">Un check "httpbin health" peut avoir un intervalle de 60s, un autre de 5min — on ne court que ceux qui sont dus.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">4</div>
+      <div class="step-body">
+        <div class="who">_dispatch_tenant_checks — tasks.py</div>
+        <div class="what">Met <code>next_run_at = maintenant + intervalle</code> <strong>avant</strong> de lancer la tâche</div>
+        <div class="why">Technique anti double-dispatch : si deux workers lisent en même temps, le check ne tourne qu'une fois car le prochain tick est déjà planifié.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">5</div>
+      <div class="step-body">
+        <div class="who">Celery Queue "checks"</div>
+        <div class="what">Envoie <code>run_check.delay(check_id, schema_name)</code> dans la queue Redis</div>
+        <div class="why">Chaque check devient une tâche indépendante — si httpbin met 5s, ça ne bloque pas le check de Google.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">6</div>
+      <div class="step-body">
+        <div class="who">Worker Celery — run_check</div>
+        <div class="what">Récupère la tâche depuis Redis, active le schéma tenant, appelle <code>_execute_check</code></div>
+        <div class="why">Le worker peut tourner sur un autre serveur — il a besoin du bon schéma PostgreSQL pour lire le bon Check.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">7</div>
+      <div class="step-body">
+        <div class="who">_execute_check — tasks.py</div>
+        <div class="what">Charge le <code>Check</code> depuis la BDD, appelle <code>run_executor(type, config)</code></div>
+        <div class="why">C'est ici qu'on sait si c'est un check HTTP, TCP ou Ping, et on appelle le bon exécuteur.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">8</div>
+      <div class="step-body">
+        <div class="who">run_executor → executors.py (Bloc 1)</div>
+        <div class="what">Exécute la vraie requête réseau : HTTP avec <code>httpx</code>, TCP avec <code>asyncio</code>, Ping avec <code>icmplib</code></div>
+        <div class="why">C'est la seule partie qui "sort" vers internet. Elle renvoie un <code>ExecutorResult</code> : statut + durée + code HTTP.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">9</div>
+      <div class="step-body">
+        <div class="who">_execute_check — tasks.py</div>
+        <div class="what">Sauvegarde un <code>CheckResult</code> en base (statut, durée, code HTTP)</div>
+        <div class="why">L'historique complet est conservé. Utile pour les graphs de SLA et l'uptime sur 30 jours.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">10</div>
+      <div class="step-body">
+        <div class="who">process_result — incidents.py (Bloc 3)</div>
+        <div class="what">Analyse les derniers résultats et décide si un <code>Incident</code> doit être ouvert ou fermé</div>
+        <div class="why">C'est la "mémoire" du système — un seul timeout n'alarme pas, mais 3 d'affilée oui.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 2 — STATE MACHINE
+══════════════════════════════════════════ -->
+<div class="panel" id="p1">
+  <h2>State machine — quand un Incident s'ouvre, s'escalade et se ferme</h2>
+
+  <h3>Les 3 états possibles d'un Incident</h3>
+  <div class="states">
+    <div class="state-card open">
+      <div class="sname">OPEN</div>
+      <ul>
+        <li>Incident détecté automatiquement</li>
+        <li>Personne n'a encore regardé</li>
+        <li>Alerte envoyée (futur Bloc 6)</li>
+      </ul>
+    </div>
+    <div class="state-card ack">
+      <div class="sname">ACKNOWLEDGED</div>
+      <ul>
+        <li>Un humain l'a pris en charge</li>
+        <li>Défini via l'API (Bloc 4)</li>
+        <li>Peut laisser une note <code>ack_note</code></li>
+      </ul>
+    </div>
+    <div class="state-card resolved">
+      <div class="sname">RESOLVED</div>
+      <ul>
+        <li>Le check repassé OK</li>
+        <li>Fermé automatiquement</li>
+        <li><code>resolved_at</code> = heure de la récupération</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Règles de transition (ce que fait <code>process_result</code>)</h3>
+  <div class="transitions">
+
+    <div class="tr">
+      <div class="from"><span class="badge b-noop">Pas d'incident</span></div>
+      <div class="cond">+ résultat FAIL/TIMEOUT mais <strong>pas encore</strong> atteint le seuil <code>retry_count</code><br/><small>Ex: 1 fail sur 3 requis → on attend</small></div>
+      <div class="to"><span class="badge b-noop">No-op</span></div>
+    </div>
+
+    <div class="tr">
+      <div class="from"><span class="badge b-noop">Pas d'incident</span></div>
+      <div class="cond">+ résultat FAIL/TIMEOUT et <strong>seuil atteint</strong> (<code>consecutive ≥ retry_count</code>)<br/><small>Ex: 3 fails consécutifs sur 3 requis</small></div>
+      <div class="to"><span class="badge b-open">→ OPEN</span></div>
+    </div>
+
+    <div class="tr">
+      <div class="from"><span class="badge b-open">OPEN</span> <span class="badge b-ack">ACK</span></div>
+      <div class="cond">+ nouvelle failure<br/><small>L'incident existe déjà, on escalade la sévérité si nécessaire mais on ne crée pas un doublon</small></div>
+      <div class="to"><span class="badge b-noop">No-op (sévérité mise à jour)</span></div>
+    </div>
+
+    <div class="tr">
+      <div class="from"><span class="badge b-open">OPEN</span> <span class="badge b-ack">ACK</span></div>
+      <div class="cond">+ résultat OK<br/><small>Le service répond à nouveau — on ferme automatiquement</small></div>
+      <div class="to"><span class="badge b-resolved">→ RESOLVED</span></div>
+    </div>
+
+    <div class="tr">
+      <div class="from"><span class="badge b-resolved">RESOLVED</span></div>
+      <div class="cond">+ nouvelle failure streak ≥ seuil<br/><small>Le service est tombé à nouveau → nouvel incident, nouveau UUID</small></div>
+      <div class="to"><span class="badge b-open">→ OPEN (nouveau)</span></div>
+    </div>
+
+  </div>
+
+  <h3>Sévérité — comment elle est calculée</h3>
+  <table class="sev-table">
+    <thead>
+      <tr>
+        <th>Failures consécutives</th>
+        <th>Formule</th>
+        <th>Sévérité</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Entre 1× et 2× le seuil</td>
+        <td>ex: retry_count=3 → entre 3 et 5 fails</td>
+        <td style="color:#f9e2af;font-weight:600;">MEDIUM</td>
+      </tr>
+      <tr>
+        <td>Entre 2× et 3× le seuil</td>
+        <td>ex: retry_count=3 → entre 6 et 8 fails</td>
+        <td style="color:#fab387;font-weight:600;">HIGH</td>
+      </tr>
+      <tr>
+        <td>≥ 3× le seuil</td>
+        <td>ex: retry_count=3 → 9 fails ou plus</td>
+        <td style="color:#f38ba8;font-weight:600;">CRITICAL</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 3 — LES 3 BLOCS
+══════════════════════════════════════════ -->
+<div class="panel" id="p2">
+  <h2>Les 3 blocs — rôle et responsabilité de chacun</h2>
+
+  <div class="blocs">
+    <div class="bloc">
+      <div class="btitle">Bloc 1 — Executors</div>
+      <div class="bfile">apps/monitoring/executors.py</div>
+      <div class="bjob">
+        <strong>Rôle unique :</strong> faire la vraie requête réseau et renvoyer un résultat.<br/><br/>
+        Il ne sait pas qui l'appelle ni ce qu'on fera du résultat. Il répond juste :<br/>
+        → <code>status</code> (ok / fail / timeout)<br/>
+        → <code>duration_ms</code> (combien de temps ça a pris)<br/>
+        → <code>response_code</code> (code HTTP si applicable)<br/><br/>
+        <strong>3 types de checks :</strong><br/>
+        • HTTP → <code>httpx.AsyncClient</code><br/>
+        • TCP → <code>asyncio.open_connection</code><br/>
+        • Ping → <code>icmplib.async_ping</code>
+      </div>
+    </div>
+
+    <div class="connector">→</div>
+
+    <div class="bloc">
+      <div class="btitle">Bloc 2 — Tasks</div>
+      <div class="bfile">apps/monitoring/tasks.py</div>
+      <div class="bjob">
+        <strong>Rôle :</strong> orchestrer — quand lancer les checks, pour quel tenant, et sauvegarder les résultats.<br/><br/>
+        Il fait le lien entre la planification (Beat) et l'exécution (executors) :<br/>
+        1. Lit les checks dus en BDD<br/>
+        2. Met à jour <code>next_run_at</code> (anti double-dispatch)<br/>
+        3. Appelle <code>run_executor</code> (Bloc 1)<br/>
+        4. Sauvegarde le <code>CheckResult</code><br/>
+        5. Appelle <code>process_result</code> (Bloc 3)
+      </div>
+    </div>
+
+    <div class="connector">→</div>
+
+    <div class="bloc">
+      <div class="btitle">Bloc 3 — Incidents</div>
+      <div class="bfile">apps/monitoring/incidents.py</div>
+      <div class="bjob">
+        <strong>Rôle :</strong> décider si la situation mérite une alerte ou si l'alerte peut être fermée.<br/><br/>
+        Il reçoit chaque résultat et demande :<br/>
+        • Combien de fails consécutifs y a-t-il eu ?<br/>
+        • Est-ce qu'on a déjà un incident ouvert ?<br/>
+        • Le service vient-il de récupérer ?<br/><br/>
+        → Ouvre / escalade / ferme l'<code>Incident</code> en conséquence.
+      </div>
+    </div>
+  </div>
+
+  <h3>Comment ils s'appellent (chaîne d'appels)</h3>
+  <div class="transitions">
+    <div class="tr">
+      <div class="from" style="color:#f5a623;min-width:140px;">Celery Beat</div>
+      <div class="cond">toutes les 30s → <code>dispatch_due_checks()</code></div>
+      <div class="to" style="color:#cba6f7;">Bloc 2</div>
+    </div>
+    <div class="tr">
+      <div class="from" style="color:#cba6f7;min-width:140px;">Bloc 2 (tasks)</div>
+      <div class="cond">pour chaque check dû → <code>run_executor(type, config)</code></div>
+      <div class="to" style="color:#89b4fa;">Bloc 1</div>
+    </div>
+    <div class="tr">
+      <div class="from" style="color:#89b4fa;min-width:140px;">Bloc 1 (executors)</div>
+      <div class="cond">renvoie un <code>ExecutorResult</code> (statut + durée) au Bloc 2</div>
+      <div class="to" style="color:#cba6f7;">Bloc 2</div>
+    </div>
+    <div class="tr">
+      <div class="from" style="color:#cba6f7;min-width:140px;">Bloc 2 (tasks)</div>
+      <div class="cond">après sauvegarde du résultat → <code>process_result(check, result)</code></div>
+      <div class="to" style="color:#a6e3a1;">Bloc 3</div>
+    </div>
+    <div class="tr">
+      <div class="from" style="color:#a6e3a1;min-width:140px;">Bloc 3 (incidents)</div>
+      <div class="cond">lit l'historique et ouvre/ferme un <code>Incident</code> en BDD si nécessaire</div>
+      <div class="to" style="color:#a6e3a1;">PostgreSQL</div>
+    </div>
+  </div>
+
+  <br/>
+  <p style="color:#6c7086;font-size:.85rem;">Blocs 4 (REST API) et 5 (Celery Beat schedule) sont les prochaines étapes.</p>
+</div>
+
+<script>
+  function show(i){
+    document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+    document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+  }
+</script>
+</body>
+</html>

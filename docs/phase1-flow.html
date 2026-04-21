@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>SentinelOps Phase 1 — Call Flow & State Machine</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1e1e2e; color: #cdd6f4; font-family: 'Segoe UI', sans-serif; }
+    header {
+      padding: 18px 32px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 600; color: #cba6f7; }
+    header span { font-size: 0.8rem; color: #6c7086; }
+    .controls {
+      padding: 12px 32px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    button {
+      background: #313244;
+      color: #cdd6f4;
+      border: 1px solid #45475a;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #45475a; }
+    .zoom-label { font-size: 0.8rem; color: #6c7086; min-width: 48px; text-align: center; }
+    .canvas {
+      overflow: auto;
+      height: calc(100vh - 98px);
+      padding: 32px;
+      cursor: grab;
+    }
+    .canvas:active { cursor: grabbing; }
+    .diagram-wrap {
+      display: inline-block;
+      transform-origin: top left;
+      transition: transform 0.15s ease;
+    }
+    .mermaid svg {
+      max-width: none !important;
+    }
+    /* Legend */
+    .legend {
+      margin-top: 40px;
+      display: inline-block;
+      background: #181825;
+      border: 1px solid #313244;
+      border-radius: 10px;
+      padding: 16px 24px;
+      font-size: 0.82rem;
+    }
+    .legend h3 { color: #cba6f7; margin-bottom: 10px; font-size: 0.9rem; }
+    .legend table { border-collapse: collapse; }
+    .legend td { padding: 4px 12px 4px 0; color: #bac2de; }
+    .legend td:first-child { color: #89b4fa; font-family: monospace; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>SentinelOps — Phase 1 : Call Flow &amp; State Machine</h1>
+  <span>Bloc 1 (executors) · Bloc 2 (tasks) · Bloc 3 (incidents)</span>
+</header>
+<div class="controls">
+  <button onclick="zoom(-0.15)">−</button>
+  <span class="zoom-label" id="zl">100%</span>
+  <button onclick="zoom(+0.15)">+</button>
+  <button onclick="reset()">Reset</button>
+  <button onclick="fit()">Fit</button>
+</div>
+<div class="canvas" id="canvas">
+  <div class="diagram-wrap" id="wrap">
+    <div class="mermaid">
+flowchart TD
+    BEAT["⏱ Celery Beat\nevery 30s"]
+
+    subgraph tasks["apps/monitoring/tasks.py"]
+        DDC["dispatch_due_checks()"]
+        DTC["_dispatch_tenant_checks\n(schema_name, now)"]
+        RC["run_check.delay\n(check_id, schema_name)"]
+        RC2["run_check\n(check_id, schema_name)"]
+        EC["_execute_check\n(check_id, schema_name)"]
+    end
+
+    subgraph executors["apps/monitoring/executors.py"]
+        RE["run_executor\n(check_type, config)"]
+        HTTP["run_http_check(config)\nhttpx.AsyncClient"]
+        TCP["run_tcp_check(config)\nasyncio.open_connection"]
+        PING["run_ping_check(config)\nicmplib.async_ping"]
+    end
+
+    subgraph sm["apps/monitoring/incidents.py"]
+        PR["process_result\n(check, result)"]
+        CF["_consecutive_failures\n(check, retry_count)"]
+        HF["_handle_failure(...)"]
+        HR["_handle_recovery(...)"]
+        SEV["_severity_from_failures\n(consecutive, threshold)"]
+    end
+
+    subgraph db["PostgreSQL — tenant schema"]
+        CHK["Check\n(next_run_at updated)"]
+        CR["CheckResult.objects.create()"]
+        INC["Incident\n(create / update)"]
+    end
+
+    BEAT --> DDC
+    DDC -->|"per active tenant"| DTC
+    DTC -->|"UPDATE next_run_at\nBEFORE dispatch"| CHK
+    DTC --> RC
+    RC -->|"Celery worker picks up"| RC2
+    RC2 -->|"schema_context(schema_name)"| EC
+    EC --> CHK
+    EC -->|"asyncio.run(...)"| RE
+    RE -->|"check_type=http"| HTTP
+    RE -->|"check_type=tcp"| TCP
+    RE -->|"check_type=ping"| PING
+    HTTP & TCP & PING -->|"ExecutorResult\n(status, duration_ms, ...)"| EC
+    EC --> CR
+    CR --> PR
+
+    PR -->|"status in FAIL/TIMEOUT/UNKNOWN"| HF
+    PR -->|"status = ok"| HR
+
+    HF --> CF
+    CF -->|"consecutive &lt; retry_count"| NO1["no-op\n(wait for threshold)"]
+    CF -->|"consecutive &gt;= retry_count"| SEV
+    SEV -->|"active incident exists"| UPD["update severity\nif escalated"]
+    SEV -->|"no active incident"| INC
+    UPD --> INC
+
+    HR -->|"active OPEN/ACK incident"| RESOLVE["state = RESOLVED\nresolved_at = now()"]
+    HR -->|"no incident"| NO2["no-op"]
+    RESOLVE --> INC
+
+    style BEAT fill:#f5a623,color:#000,stroke:#c47d00
+    style NO1 fill:#45475a,color:#cdd6f4,stroke:#585b70
+    style NO2 fill:#45475a,color:#cdd6f4,stroke:#585b70
+    style INC fill:#1e4620,color:#a6e3a1,stroke:#40a02b
+    style CR fill:#12325a,color:#89b4fa,stroke:#1e66f5
+    style BEAT stroke-width:2px
+    </div>
+
+    <div class="legend">
+      <h3>Règles de transition — State Machine</h3>
+      <table>
+        <tr>
+          <td>Aucun incident</td>
+          <td>consecutive &lt; retry_count</td>
+          <td>→ no-op (attente)</td>
+        </tr>
+        <tr>
+          <td>Aucun incident</td>
+          <td>consecutive ≥ retry_count</td>
+          <td>→ OPEN (severity = medium/high/critical)</td>
+        </tr>
+        <tr>
+          <td>OPEN / ACK</td>
+          <td>nouvelle failure</td>
+          <td>→ no-op (update severity si escalade)</td>
+        </tr>
+        <tr>
+          <td>OPEN / ACK</td>
+          <td>résultat OK</td>
+          <td>→ RESOLVED + resolved_at = now()</td>
+        </tr>
+        <tr>
+          <td>RESOLVED</td>
+          <td>nouvelle failure streak ≥ threshold</td>
+          <td>→ nouvel OPEN (nouveau UUID)</td>
+        </tr>
+      </table>
+      <br/>
+      <h3>Severity mapping (× retry_count threshold)</h3>
+      <table>
+        <tr><td>1× threshold</td><td>→ <span style="color:#f9e2af">medium</span></td></tr>
+        <tr><td>2× threshold</td><td>→ <span style="color:#fab387">high</span></td></tr>
+        <tr><td>3× threshold</td><td>→ <span style="color:#f38ba8">critical</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', flowchart: { useMaxWidth: false, htmlLabels: true } });
+
+  let scale = 1.0;
+
+  function zoom(delta) {
+    scale = Math.min(Math.max(scale + delta, 0.2), 4.0);
+    apply();
+  }
+
+  function reset() {
+    scale = 1.0;
+    apply();
+  }
+
+  function fit() {
+    const canvas = document.getElementById('canvas');
+    const wrap = document.getElementById('wrap');
+    const scaleX = (canvas.clientWidth - 64) / wrap.scrollWidth * scale;
+    const scaleY = (canvas.clientHeight - 64) / wrap.scrollHeight * scale;
+    scale = Math.min(scaleX, scaleY, 1.0);
+    apply();
+  }
+
+  function apply() {
+    document.getElementById('wrap').style.transform = `scale(${scale})`;
+    document.getElementById('zl').textContent = Math.round(scale * 100) + '%';
+  }
+
+  // Mouse wheel zoom
+  document.getElementById('canvas').addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoom(e.deltaY < 0 ? 0.1 : -0.1);
+  }, { passive: false });
+
+  // Drag to pan
+  const canvas = document.getElementById('canvas');
+  let dragging = false, sx, sy, sl, st;
+  canvas.addEventListener('mousedown', e => { dragging = true; sx = e.clientX; sy = e.clientY; sl = canvas.scrollLeft; st = canvas.scrollTop; });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    canvas.scrollLeft = sl - (e.clientX - sx);
+    canvas.scrollTop  = st - (e.clientY - sy);
+  });
+</script>
+</body>
+</html>

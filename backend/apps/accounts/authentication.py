@@ -87,6 +87,10 @@ class JWTAuthentication(BaseAuthentication):
 
         return user, None
 
+    def www_authenticate(self, request: Request) -> str:
+        """Return WWW-Authenticate header value so DRF issues 401 (not 403)."""
+        return 'Bearer realm="api"'
+
 
 class APIKeyAuthentication(BaseAuthentication):
     """

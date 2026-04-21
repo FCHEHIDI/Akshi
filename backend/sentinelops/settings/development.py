@@ -18,6 +18,7 @@ SECRET_KEY = os.environ.get(
 )
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
+APPEND_SLASH = False
 
 # ---------------------------------------------------------------------------
 # Database — uses PostgreSQL by default (same as prod) to keep parity.

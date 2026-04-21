@@ -405,3 +405,71 @@ class NotificationChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = NotificationChannelSerializer
     permission_classes = [IsAuthenticated]
     queryset = NotificationChannel.objects.all()
+
+
+# ---------------------------------------------------------------------------
+# Flat convenience views (used by the frontend dashboard)
+# ---------------------------------------------------------------------------
+
+
+class AllChecksListView(generics.ListAPIView):
+    """
+    GET /api/v1/checks/
+
+    Returns all enabled checks across every service for the current tenant.
+    Useful for the dashboard checks table without knowing service UUIDs.
+
+    Query params:
+        enabled: ``true`` | ``false`` — filter by is_enabled.
+    """
+
+    serializer_class = CheckSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Return all checks for the tenant, ordered by service name then check name.
+
+        Returns:
+            QuerySet of Check instances with select_related service.
+        """
+        qs = Check.objects.select_related("service").order_by("service__name", "name")
+        enabled = self.request.query_params.get("enabled")
+        if enabled is not None:
+            qs = qs.filter(is_enabled=enabled.lower() == "true")
+        return qs
+
+
+class RecentResultsListView(generics.ListAPIView):
+    """
+    GET /api/v1/results/recent/
+
+    Returns the most recent check results across all checks for the tenant.
+    Useful for dashboard KPIs and sparklines without check-specific queries.
+
+    Query params:
+        limit: Max results to return (default 50, max 500).
+    """
+
+    serializer_class = CheckResultSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends: list = []
+    # Disable cursor pagination — this view slices in get_queryset, and CursorPagination
+    # would try to re-order the already-sliced queryset, raising TypeError.
+    pagination_class = None
+
+    def get_queryset(self):
+        """
+        Return recent results ordered newest-first, limited by ?limit query param.
+
+        Returns:
+            QuerySet of CheckResult instances.
+        """
+        try:
+            limit = min(int(self.request.query_params.get("limit", 50)), 500)
+        except (TypeError, ValueError):
+            limit = 50
+        return (
+            CheckResult.objects.select_related("health_check__service")
+            .order_by("-created_at")[:limit]
+        )

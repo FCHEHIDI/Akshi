@@ -60,7 +60,7 @@ TENANT_DOMAIN_MODEL = "accounts.Domain"
 # Middleware
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
-    "django_tenants.middleware.main.TenantMainMiddleware",
+    "apps.accounts.middleware.TenantRoutingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

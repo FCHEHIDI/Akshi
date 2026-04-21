@@ -101,6 +101,7 @@ class CheckSerializer(serializers.ModelSerializer):
 
     service_id = serializers.UUIDField(source="service.id", read_only=True)
     service_name = serializers.CharField(source="service.name", read_only=True)
+    target = serializers.SerializerMethodField()
 
     class Meta:
         model = Check
@@ -111,6 +112,7 @@ class CheckSerializer(serializers.ModelSerializer):
             "name",
             "check_type",
             "config",
+            "target",
             "interval_seconds",
             "retry_count",
             "is_enabled",
@@ -122,10 +124,32 @@ class CheckSerializer(serializers.ModelSerializer):
             "id",
             "service_id",
             "service_name",
+            "target",
             "next_run_at",
             "created_at",
             "updated_at",
         ]
+
+    def get_target(self, obj: "Check") -> str:
+        """
+        Extract a human-readable target string from the check config.
+
+        Args:
+            obj: The Check instance.
+
+        Returns:
+            A string representation of the check target.
+        """
+        cfg = obj.config or {}
+        if obj.check_type == "http":
+            return str(cfg.get("url", ""))
+        elif obj.check_type in ("tcp", "ping"):
+            host = cfg.get("host", "")
+            port = cfg.get("port")
+            return f"{host}:{port}" if port else str(host)
+        elif obj.check_type == "cron":
+            return str(cfg.get("name", cfg.get("slug", "heartbeat")))
+        return str(cfg)
 
     def validate_interval_seconds(self, value: int) -> int:
         """
@@ -171,13 +195,20 @@ class CheckResultSerializer(serializers.ModelSerializer):
     """
     Read-only serializer for CheckResult.
 
-    Used for the check history endpoint.
+    Used for the check history endpoint and the flat recent-results endpoint.
+    Includes the parent check name and service ID for client-side correlation.
     """
+
+    health_check_name = serializers.CharField(source="health_check.name", read_only=True)
+    service_id = serializers.UUIDField(source="health_check.service_id", read_only=True)
 
     class Meta:
         model = CheckResult
         fields = [
             "id",
+            "health_check",
+            "health_check_name",
+            "service_id",
             "status",
             "duration_ms",
             "response_code",
@@ -202,7 +233,7 @@ class IncidentSerializer(serializers.ModelSerializer):
     """
 
     service_name = serializers.CharField(source="service.name", read_only=True)
-    check_name = serializers.CharField(source="health_check.name", read_only=True)
+    health_check_name = serializers.CharField(source="health_check.name", read_only=True)
     check_type = serializers.CharField(source="health_check.check_type", read_only=True)
 
     class Meta:
@@ -211,7 +242,7 @@ class IncidentSerializer(serializers.ModelSerializer):
             "id",
             "service_id",
             "service_name",
-            "check_name",
+            "health_check_name",
             "check_type",
             "state",
             "severity",
