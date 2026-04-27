@@ -1,0 +1,63 @@
+Charte Visuelle d'Akshi
+
+1. Palette Chromatique
+
+Violet galactique (#3B006A) : Fond principal, profondeur et mystère.
+
+Magenta électrique (#FF00C8) : Énergie, perception, signal.
+
+Argent liquide (#C0C0C0) : Réflexion, surface, observabilité.
+
+Noir graphite (#0A0A0A) : Contraste, silence, stabilité.
+
+Bleu polaire (#3F4FFF) : Accent secondaire pour interfaces techniques.
+
+2. Typographie
+
+Logo / Titres : Style personnalisé inspiré du visuel — lettres de tailles variables, légèrement vaporeuses.
+
+Texte technique : IBM Plex Sans ou Inter pour lisibilité et rigueur.
+
+Accents / Taglines : Orbitron ou Space Grotesk pour rappeler la dimension cosmique.
+
+3. Motifs et Textures
+
+Eau réfléchissante : Surfaces de fond ou transitions.
+
+Fumée magenta fractale : Animations, survols, halos.
+
+Grain cosmique : Visuels statiques rappelant la galaxie.
+
+Ondes concentriques : Signature de mouvement, symbole d’observabilité.
+
+4. Signature Visuelle
+
+Akshi — The Eye That Sees Systems
+
+Français : L’œil qui observe les systèmes.
+
+Corporate : Observability Beyond Vision.
+
+Poétique : La perception incarnée.
+
+5. Déclinaisons
+
+Logo principal : Magenta sur fond violet.
+
+Logo secondaire : Argenté sur fond noir.
+
+Icône / Favicon : Lettre "S" centrale stylisée.
+
+Animation : Apparition progressive des lettres comme une onde de perception.
+
+6. Applications
+
+Site web : Fond violet galactique, accents magenta.
+
+Pitch deck : Titres en magenta électrique, fonds argentés.
+
+Posts LinkedIn : Visuels cosmiques avec fumée magenta.
+
+7. Conclusion
+
+Cette charte visuelle incarne l’essence d’Akshi : une observabilité cosmique, calme et électrique, où chaque élément renforce l’identité du système.
