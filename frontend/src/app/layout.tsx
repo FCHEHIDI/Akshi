@@ -1,13 +1,27 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { IBM_Plex_Sans, Orbitron } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
 import "./globals.css";
 
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm",
+  display: "swap",
+});
+
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "900"],
+  variable: "--font-orbitron",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: { default: "Akshi", template: "%s · Akshi" },
-  description: "Akshi — the eye that never closes. B2B observability, incident management & alerting.",
+  description: "Akshi — The Eye That Sees Systems. Observability beyond vision.",
+  icons: { icon: "/favicon_akshi.png" },
 };
 
 export default function RootLayout({
@@ -18,9 +32,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
+      className={`${ibmPlexSans.variable} ${orbitron.variable} h-full antialiased`}
     >
-      <body className="h-full bg-background text-foreground">
+      <body className="h-full bg-background text-foreground font-[var(--font-ibm)]">
         <ReactQueryProvider>
           <TooltipProvider>{children}</TooltipProvider>
         </ReactQueryProvider>

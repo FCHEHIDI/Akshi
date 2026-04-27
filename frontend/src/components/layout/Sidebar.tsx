@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -28,15 +29,10 @@ export function Sidebar() {
       aria-label="Main navigation"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 h-14 px-5 border-b border-border">
-        <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
-          <ellipse cx="11" cy="11" rx="10" ry="6.5" stroke="var(--accent-teal)" strokeWidth="1.4" />
-          <circle cx="11" cy="11" r="3" fill="var(--accent-teal)" />
-          <circle cx="11" cy="11" r="1.2" fill="var(--surface-1)" />
-        </svg>
-        <span className="text-sm font-semibold tracking-tight text-foreground">
-          Akshi
-        </span>
+      <div className="flex items-center h-14 px-5 border-b border-[var(--border)]">
+        <Link href="/dashboard">
+          <Image src="/logo_principal.png" alt="Akshi" width={150} height={46} className="h-11 w-auto" priority />
+        </Link>
       </div>
 
       {/* Nav */}
@@ -48,14 +44,14 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
+                "flex items-center gap-3 px-3 py-2 rounded text-sm transition-all duration-150",
                 active
-                  ? "bg-[var(--surface-3)] text-foreground"
+                  ? "bg-[var(--accent-teal-muted)] text-[var(--accent-teal)] font-medium"
                   : "text-[var(--foreground-muted)] hover:bg-[var(--surface-2)] hover:text-foreground"
               )}
               aria-current={active ? "page" : undefined}
             >
-              <Icon size={15} strokeWidth={1.5} />
+              <Icon size={15} strokeWidth={active ? 2 : 1.5} />
               {label}
             </Link>
           );

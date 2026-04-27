@@ -30,12 +30,12 @@ export default function DashboardLayout({
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="flex items-center justify-end gap-2 h-14 px-5 border-b border-border bg-[var(--surface-1)] shrink-0">
+        <header className="flex items-center justify-end gap-2 h-14 px-5 border-b border-[var(--border)] bg-[var(--surface-1)]/80 backdrop-blur-sm shrink-0">
           <AiDrawerTrigger onClick={() => setAiOpen(true)} />
           <button
             onClick={handleLogout}
             title="Sign out"
-            className="flex items-center justify-center w-7 h-7 rounded text-[var(--foreground-subtle)] hover:text-foreground hover:bg-[var(--surface-2)] transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded text-[var(--foreground-subtle)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-muted)] transition-colors"
           >
             <LogOut size={13} strokeWidth={1.5} />
           </button>
