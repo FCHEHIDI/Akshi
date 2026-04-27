@@ -176,7 +176,7 @@ export default function OnboardingPage() {
                       id="slug"
                       type="text"
                       required
-                      pattern="[a-z0-9-]+"
+                      pattern="[a-z0-9\\-]+"
                       title="Lowercase letters, numbers and hyphens only"
                       placeholder="acme"
                       value={slug}

@@ -32,7 +32,7 @@ export default function InviteAcceptPage() {
     if (!token) return;
     api.invitations.peek(token)
       .then(setPeek)
-      .catch((err) => setPeekError(err instanceof Error ? err.message : "Invalid or expired invitation"));
+      .catch(() => setPeekError("This invitation link is invalid or has expired."));
   }, [token]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -49,7 +49,7 @@ export default function InviteAcceptPage() {
       setDone(true);
       setTimeout(() => router.push("/dashboard"), 1800);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to accept invitation");
+      setError(err instanceof Error && !err.message.includes("<") ? err.message : "Failed to accept invitation. Please try again.");
     } finally {
       setLoading(false);
     }
