@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { Eye, Siren, BarChart3, Bot, Lock, Sparkles } from "lucide-react";
 
-function FeatureCard({ icon, title, body }: { icon: string; title: string; body: string }) {
+function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-6 flex flex-col gap-3 hover:border-[var(--accent-teal-muted)] transition-colors">
-      <span className="text-2xl">{icon}</span>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-6 flex flex-col gap-3 hover:border-[var(--accent-teal)] transition-colors">
+      <span className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--accent-teal-muted)] text-[var(--accent-teal)]">{icon}</span>
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">{body}</p>
     </div>
@@ -120,32 +121,32 @@ export default function LandingPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <FeatureCard
-            icon="👁"
+            icon={<Eye size={18} />}
             title="Health Checks"
             body="HTTP, TCP, ping, and cron monitors running on distributed agents. Configurable retry logic, custom headers, and TLS inspection."
           />
           <FeatureCard
-            icon="🚨"
+            icon={<Siren size={18} />}
             title="Incident Management"
             body="Auto-open incidents on threshold breach. Severity triage, acknowledgement workflows, and resolution timelines — all in one view."
           />
           <FeatureCard
-            icon="📊"
+            icon={<BarChart3 size={18} />}
             title="SLO Tracking"
             body="Define error budgets per service. Burn-rate alerts warn your team before the budget is exhausted — not after."
           />
           <FeatureCard
-            icon="🤖"
+            icon={<Bot size={18} />}
             title="Runbook Automation"
             body="Trigger automated remediation scripts on incident creation. Integrate with your existing toolchain via webhooks and plugins."
           />
           <FeatureCard
-            icon="🔐"
+            icon={<Lock size={18} />}
             title="Multi-Tenant"
             body="Isolated PostgreSQL schemas per organisation. Invite team members with role-based access — admin, operator, or read-only."
           />
           <FeatureCard
-            icon="✨"
+            icon={<Sparkles size={18} />}
             title="AI Co-pilot"
             body="Ask Akshi AI why an incident fired, what changed, and what to do next. Grounded in your telemetry, not generic guesses."
           />
