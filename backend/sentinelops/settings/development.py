@@ -19,6 +19,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 APPEND_SLASH = False
+USE_X_FORWARDED_HOST = True
 
 # Allow API requests from bare localhost (without a registered tenant domain).
 # This makes /api/v1/onboarding/ and /api/v1/invitations/ reachable in dev
