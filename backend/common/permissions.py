@@ -64,6 +64,26 @@ def make_org_permission(perm: str) -> type[BasePermission]:
 
         def has_permission(self, request: Request, view: APIView) -> bool:
             membership = getattr(request, "membership", None)
+
+            # TenantMembershipMiddleware runs before DRF authentication, so
+            # request.user is still AnonymousUser at middleware time.  Once DRF
+            # has authenticated the request (which happens lazily on first access
+            # of request.user inside a view), we can resolve the membership here.
+            if membership is None and request.user and request.user.is_authenticated:
+                tenant = getattr(request, "tenant", None)
+                if tenant is not None:
+                    from apps.accounts.models import Membership as MembershipModel  # noqa: PLC0415
+                    membership = (
+                        MembershipModel.objects.filter(
+                            user=request.user,
+                            organization=tenant,
+                            is_active=True,
+                        )
+                        .select_related("organization")
+                        .first()
+                    )
+                    request.membership = membership  # cache for subsequent checks
+
             if membership is None:
                 return False
             allowed = ROLE_PERMISSIONS.get(membership.role, set())

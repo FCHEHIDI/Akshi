@@ -20,6 +20,11 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 APPEND_SLASH = False
 
+# Allow API requests from bare localhost (without a registered tenant domain).
+# This makes /api/v1/onboarding/ and /api/v1/invitations/ reachable in dev
+# without registering localhost as a Domain row.
+SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
+
 # ---------------------------------------------------------------------------
 # Database — uses PostgreSQL by default (same as prod) to keep parity.
 # Override DATABASE_URL in .env to point to your local PG instance.

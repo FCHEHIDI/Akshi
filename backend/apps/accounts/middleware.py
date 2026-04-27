@@ -25,6 +25,10 @@ class TenantRoutingMiddleware(TenantMainMiddleware):
     ``localhost:8000`` becomes ``localhost`` and resolves to the public tenant.
     By preserving the full ``host:port`` string we can register each dev port
     as its own domain entry and route correctly in local development.
+
+    When no tenant domain matches the incoming host (e.g. bare ``localhost:8000``),
+    falls through to the public schema via the built-in ``no_tenant_found``
+    mechanism (controlled by ``SHOW_PUBLIC_IF_NO_TENANT_FOUND`` in settings).
     """
 
     @staticmethod
