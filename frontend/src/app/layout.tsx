@@ -6,8 +6,8 @@ import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SentinelOps",
-  description: "Observability platform",
+  title: { default: "Akshi", template: "%s · Akshi" },
+  description: "Akshi — the eye that never closes. B2B observability, incident management & alerting.",
 };
 
 export default function RootLayout({

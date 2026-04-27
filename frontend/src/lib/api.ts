@@ -83,6 +83,25 @@ export interface Incident {
   updated_at: string;
 }
 
+export interface Member {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  role: "admin" | "operator" | "viewer";
+  joined_at: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: Member["role"];
+  status: "pending" | "accepted" | "expired" | "cancelled";
+  invited_by: string;
+  created_at: string;
+  expires_at: string;
+}
+
 /* ── Paginated wrapper ─────────────────────────────────────── */
 
 interface Paginated<T> {
@@ -124,5 +143,38 @@ export const api = {
     resolve: (id: string) =>
       apiFetch(`/v1/incidents/${id}/resolve`, { method: "POST" }),
   },
+  team: {
+    members: () => apiFetchList<Member>("/v1/team/members"),
+    invitations: () => apiFetchList<Invitation>("/v1/team/invitations"),
+    invite: (email: string, role: Member["role"]) =>
+      apiFetch<Invitation>("/v1/team/invitations", {
+        method: "POST",
+        body: JSON.stringify({ email, role }),
+      }),
+    cancelInvitation: (id: string) =>
+      apiFetch(`/v1/team/invitations/${id}`, { method: "DELETE" }),
+    removeMember: (id: string) =>
+      apiFetch(`/v1/team/members/${id}`, { method: "DELETE" }),
+  },
+  invitations: {
+    /** Public — accepts by token, returns JWT */
+    accept: (token: string, password: string, fullName: string) =>
+      apiFetch<{ access_token: string }>("/v1/invitations/accept", {
+        method: "POST",
+        body: JSON.stringify({ token, password, full_name: fullName }),
+      }),
+    peek: (token: string) =>
+      apiFetch<{ email: string; org_name: string; role: string }>(
+        `/v1/invitations/${token}/peek`
+      ),
+  },
+  onboarding: {
+    createOrg: (payload: { org_name: string; slug: string; full_name: string; email: string; password: string }) =>
+      apiFetch<{ access_token: string }>("/v1/onboarding/create-org", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
 } as const;
+
 

@@ -7,6 +7,7 @@ import {
   Server,
   ShieldAlert,
   Activity,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/services", label: "Services", icon: Server },
   { href: "/checks", label: "Checks", icon: Activity },
   { href: "/incidents", label: "Incidents", icon: ShieldAlert },
+  { href: "/team", label: "Team", icon: Users },
 ] as const;
 
 export function Sidebar() {
@@ -26,9 +28,14 @@ export function Sidebar() {
       aria-label="Main navigation"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2 h-14 px-5 border-b border-border">
-        <span className="text-[var(--accent-teal)] font-semibold tracking-tight text-sm">
-          SentinelOps
+      <div className="flex items-center gap-2.5 h-14 px-5 border-b border-border">
+        <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden>
+          <ellipse cx="11" cy="11" rx="10" ry="6.5" stroke="var(--accent-teal)" strokeWidth="1.4" />
+          <circle cx="11" cy="11" r="3" fill="var(--accent-teal)" />
+          <circle cx="11" cy="11" r="1.2" fill="var(--surface-1)" />
+        </svg>
+        <span className="text-sm font-semibold tracking-tight text-foreground">
+          Akshi
         </span>
       </div>
 
@@ -55,10 +62,10 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer — workspace name placeholder */}
       <div className="px-5 py-3 border-t border-border">
         <span className="text-[10px] text-[var(--foreground-subtle)] uppercase tracking-widest">
-          acme
+          workspace
         </span>
       </div>
     </aside>
